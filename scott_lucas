@@ -1,0 +1,109 @@
+/* QUESTION_1 We want to find out how the two stores compare in their count of rental orders
+during every month for all the years we have data for.
+the store ID, the year and month, the number of rental orders each store fulfilled that month.
+* column for: year, month,
+* store ID
+* count of rental orders fulfilled during that month. */
+
+SELECT DATE_PART('month',rent.rental_date) AS month,
+DATE_PART('year',rent.rental_date) AS year,
+str.store_id,
+COUNT(*) AS num_monthly_rentals
+FROM store str
+JOIN staff stf
+ON str.store_id = str.store_id
+JOIN rental rent
+ON stf.store_id = rent.staff_id
+GROUP BY 1,2,3
+ORDER BY 4 DESC;
+
+/* QUESTION_2 Who were our top 10 paying customers,
+how many payments made on a monthly basis during 2007,
+and what was the amount of the monthly payments.
+* capture the customer name,
+* month and year of payment, 
+* total payment amount for each month by these top 10 paying customers? */
+
+/* THIS IS OUR CTE */
+SELECT cust.customer_id,
+CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
+SUM(pay.amount) total_payment
+FROM customer cust
+JOIN payment pay
+ON cust.customer_id = pay.customer_id
+GROUP BY 1,2
+ORDER BY 3 DESC
+LIMIT 10;
+
+/* SubQuery MUST use FROM to JOIN and then JOIN any additional values */
+
+WITH top_customers AS 
+  (SELECT cust.customer_id,
+  CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
+  SUM(pay.amount) total_payment
+  FROM customer cust
+  JOIN payment pay
+  ON cust.customer_id = pay.customer_id
+  GROUP BY 1,2
+  ORDER BY 3 DESC
+  LIMIT 10)
+SELECT DATE_TRUNC('month',pay.payment_date) AS payment_month,
+full_name,
+COUNT(pay.amount) AS payment_count,
+SUM(pay.amount) AS total_payment
+FROM top_customers
+JOIN customer cust
+ON top_customers.customer_id = cust.customer_id
+JOIN payment pay
+ON cust.customer_id = pay.customer_id
+WHERE pay.payment_date BETWEEN '2007-01-01' AND '2008-01-01'
+GROUP BY 1,2
+ORDER BY 2
+
+/* Finally, for top customers,
+find the difference across their monthly payments during 2007.
+write a query to compare the payment amounts in each successive month.
+Repeat this for each of these 10 paying customers. 
+Also, it will be tremendously helpful if you can identify the customer
+who paid the most difference in terms of payments.
+Check your solution:
+* Eleanor Hunt paid the max difference of $64.87 - March 2007 from $22.95 in February of 2007. */
+
+SELECT cust.customer_id,
+CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
+SUM(pay.amount) total_payment
+FROM customer cust
+JOIN payment pay
+ON cust.customer_id = pay.customer_id
+GROUP BY 1,2
+ORDER BY 3 DESC
+LIMIT 10;
+
+/* SubQuery MUST use FROM to JOIN and then JOIN any additional values */
+
+WITH top_customers AS 
+  (SELECT cust.customer_id,
+  CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
+  SUM(pay.amount) total_payment
+  FROM customer cust
+  JOIN payment pay
+  ON cust.customer_id = pay.customer_id
+  GROUP BY 1,2
+  ORDER BY 3 DESC
+  LIMIT 10)
+SELECT DATE_TRUNC('month',pay.payment_date) AS payment_month,
+full_name,
+LAG(pay.amount) OVER (PARTITION BY full_name ORDER BY pay.amount) AS lag_,
+pay.amount - LAG(pay.amount) OVER (PARTITION BY full_name ORDER BY pay.payment_date) AS lag_difference
+FROM top_customers
+JOIN customer cust
+ON top_customers.customer_id = cust.customer_id
+JOIN payment pay
+ON cust.customer_id = pay.customer_id
+WHERE pay.payment_date BETWEEN '2007-01-01' AND '2008-01-01'
+ORDER BY 1,2,3,4
+
+  
+
+LAG(pay.amount) OVER (ORDER BY pay.amount) AS pay_lag,
+pay.amount - LAG(pay.amount) OVER (ORDER BY pay.amount) AS lag_difference
