@@ -1,10 +1,96 @@
-/* QUESTION_1 We want to find out how the two stores compare in their count of rental orders
+WORKSPACE QUESTION SET #1
+
+/* QUESTION_1
+Create a query that lists each movie,
+the film category it is classified in,
+number of times it has been rented out.
+solution should have three columns:
+* Film title
+* Category name
+* Count of Rentals */
+SELECT fm.title film_title,
+cat.name catergory_name,
+COUNT(rent.rental_date) AS number_rentals
+FROM film fm
+JOIN film_category filmct
+ON fm.film_id = filmct.film_id
+JOIN category cat
+ON filmct.category_id = cat.category_id
+JOIN inventory inv 
+ON fm.film_id = inv.film_id
+JOIN rental rent
+ON inv.inventory_id = rent.inventory_id
+WHERE cat.name = 'Animation' OR cat.name = 'Children' OR cat.name = 'Classics' 
+OR cat.name = 'Comedy' OR cat.name = 'Family' OR cat.name = 'Music'
+GROUP BY 1,2
+ORDER BY 2,1;
+
+/* QUESTION_2
+how the length of rental duration compares to the duration that all movies are rented for.
+provide a table with the movie titles and divide them into 4 levels
+(first_quarter, second_quarter, third_quarter, and final_quarter)
+based on the quartiles of the rental duration for movies across all categories?
+* the category,
+* film_category,
+* film tables to answer this and the next questions. */
+SELECT fm.title film_title,
+cat.name category_name,
+fm.rental_duration rental_duration,
+NTILE(4) OVER (ORDER BY rental_duration) AS standard_quartile
+FROM film fm
+JOIN film_category filmct
+ON fm.film_id = filmct.film_id
+JOIN category cat
+ON filmct.category_id = cat.category_id
+JOIN inventory inv 
+ON fm.film_id = inv.film_id
+JOIN rental rent
+ON inv.inventory_id = rent.inventory_id
+WHERE cat.name = 'Animation' OR cat.name = 'Children' OR cat.name = 'Classics' 
+OR cat.name = 'Comedy' OR cat.name = 'Family' OR cat.name = 'Music'
+GROUP BY 1,2,3
+ORDER BY 3;
+
+/* QUESTION_3
+Finally, provide a table with the family-friendly film category,
+each of the quartiles, and corresponding count movies within each cat. for each ren duration cat.
+three columns:
+* Category
+* Rental length category
+* Count */
+SELECT DISTINCT(category_name),
+standard_quartile,
+COUNT(film_title) OVER (PARTITION BY category_name) AS rental_count
+FROM
+  (SELECT fm.title film_title,
+  cat.name category_name,
+  fm.rental_duration rental_duration,
+  NTILE(4) OVER (ORDER BY rental_duration) AS standard_quartile
+  FROM film fm
+  JOIN film_category filmct
+  ON fm.film_id = filmct.film_id
+  JOIN category cat
+  ON filmct.category_id = cat.category_id
+  JOIN inventory inv 
+  ON fm.film_id = inv.film_id
+  JOIN rental rent
+  ON inv.inventory_id = rent.inventory_id
+  WHERE cat.name = 'Animation' OR cat.name = 'Children' OR cat.name = 'Classics' 
+  OR cat.name = 'Comedy' OR cat.name = 'Family' OR cat.name = 'Music'
+  GROUP BY 1,2,3) T1
+ORDER BY 1,2;
+
+
+
+WORKSPACE QUESTION SET #2
+
+/* QUESTION_1
+find out how the two stores compare in their count of rental orders
 during every month for all the years we have data for.
 the store ID, the year and month, the number of rental orders each store fulfilled that month.
 * column for: year, month,
 * store ID
 * count of rental orders fulfilled during that month. */
-
 SELECT DATE_PART('month',rent.rental_date) AS month,
 DATE_PART('year',rent.rental_date) AS year,
 str.store_id,
@@ -17,14 +103,15 @@ ON stf.store_id = rent.staff_id
 GROUP BY 1,2,3
 ORDER BY 4 DESC;
 
-/* QUESTION_2 Who were our top 10 paying customers,
+/* QUESTION_2
+Who were our top 10 paying customers,
 how many payments made on a monthly basis during 2007,
 and what was the amount of the monthly payments.
 * capture the customer name,
 * month and year of payment, 
 * total payment amount for each month by these top 10 paying customers? */
 
-/* THIS IS OUR CTE */
+/* THIS IS STARTING CTE */
 SELECT cust.customer_id,
 CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
 SUM(pay.amount) total_payment
@@ -35,8 +122,7 @@ GROUP BY 1,2
 ORDER BY 3 DESC
 LIMIT 10;
 
-/* SubQuery MUST use FROM to JOIN and then JOIN any additional values */
-
+/* SubQuery MUST JOIN any additional values */
 WITH top_customers AS 
   (SELECT cust.customer_id,
   CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
@@ -60,7 +146,7 @@ WHERE pay.payment_date BETWEEN '2007-01-01' AND '2008-01-01'
 GROUP BY 1,2
 ORDER BY 2
 
-/* Finally, for top customers,
+/* QUESTION_3
 find the difference across their monthly payments during 2007.
 write a query to compare the payment amounts in each successive month.
 Repeat this for each of these 10 paying customers. 
@@ -68,18 +154,6 @@ Also, it will be tremendously helpful if you can identify the customer
 who paid the most difference in terms of payments.
 Check your solution:
 * Eleanor Hunt paid the max difference of $64.87 - March 2007 from $22.95 in February of 2007. */
-
-SELECT cust.customer_id,
-CONCAT(cust.first_name,' ',cust.last_name) AS full_name,
-SUM(pay.amount) total_payment
-FROM customer cust
-JOIN payment pay
-ON cust.customer_id = pay.customer_id
-GROUP BY 1,2
-ORDER BY 3 DESC
-LIMIT 10;
-
-/* SubQuery MUST use FROM to JOIN and then JOIN any additional values */
 
 WITH top_customers AS 
   (SELECT cust.customer_id,
@@ -105,5 +179,6 @@ ORDER BY 1,2,3,4
 
   
 
-LAG(pay.amount) OVER (ORDER BY pay.amount) AS pay_lag,
-pay.amount - LAG(pay.amount) OVER (ORDER BY pay.amount) AS lag_difference
+
+
+
